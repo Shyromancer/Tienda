@@ -1,69 +1,46 @@
 namespace Tienda.src.Domain.Models
 {
-    /// <summary>
-    /// Modelo que representa un carrito de compras de un usuario.
-    /// </summary>
     public class Cart
     {
         /// <summary>
-        /// Identificador único del carrito.
+        /// Identificador único del carrito de compras.
         /// </summary>
         public int Id { get; set; }
 
         /// <summary>
-        /// Identificador del usuario propietario del carrito.
+        /// Total del carrito de compras incluyendo descuentos.
         /// </summary>
-        public int UserId { get; set; }
+        public int Total { get; set; }
 
         /// <summary>
-        /// Lista de productos en el carrito.
+        /// Subtotal del carrito de compras sin descuentos.
         /// </summary>
-        public List<CartItem> Items { get; set; } = new List<CartItem>();
+        public int SubTotal { get; set; }
 
         /// <summary>
-        /// Total calculado para los productos en el carrito.
+        /// Usuario que tiene el carrito (sin autenticación).
         /// </summary>
-        public decimal Total => Items.Sum(item => item.Subtotal);
+        public string BuyerId { get; set; } = null!;
 
         /// <summary>
-        /// Fecha de creación del carrito.
+        /// Identificador del usuario que posee el carrito de compras (autenticado).
+        /// </summary>
+        public int? UserId { get; set; }
+
+        /// <summary>
+        /// Lista de artículos en el carrito de compras.
+        /// </summary>
+        public ICollection<CartItem> CartItems { get; set; } = new List<CartItem>();
+
+        /// <summary>
+        /// Fecha de creación del carrito de compras.
         /// </summary>
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Método de pago seleccionado para el carrito.
+        /// Fecha de actualización del carrito de compras.
         /// </summary>
-//        public string PaymentMethod { get; set; }
-
-        /// <summary>
-        /// Estado del carrito (Ejemplo: Confirmado, Pendiente).
-        /// </summary>
-        public string Status { get; set; } = "Pendiente";
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 
-    /// <summary>
-    /// Representa un producto en el carrito.
-    /// </summary>
-    public class CartItem
-    {
-        /// <summary>
-        /// Identificador del producto.
-        /// </summary>
-        public int ProductId { get; set; }
-
-        /// <summary>
-        /// Cantidad de este producto en el carrito.
-        /// </summary>
-        public int Quantity { get; set; }
-
-        /// <summary>
-        /// Precio del producto en el carrito.
-        /// </summary>
-        public decimal Price { get; set; }
-
-        /// <summary>
-        /// Subtotal del producto en el carrito (Precio * Cantidad).
-        /// </summary>
-        public decimal Subtotal => Price * Quantity;
-    }
 }

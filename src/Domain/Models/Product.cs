@@ -1,8 +1,11 @@
 namespace Tienda.src.Domain.Models
 {
-    /// <summary>
-    /// Modelo que representa un producto en el catálogo.
-    /// </summary>
+    public enum Status
+    {
+        New,
+        Used
+    }
+
     public class Product
     {
         /// <summary>
@@ -11,49 +14,64 @@ namespace Tienda.src.Domain.Models
         public int Id { get; set; }
 
         /// <summary>
-        /// Nombre del producto.
+        /// Título del producto.
         /// </summary>
-//        public string Name { get; set; }
+        public required string Title { get; set; }
 
         /// <summary>
         /// Descripción del producto.
         /// </summary>
-//        public string Description { get; set; }
+        public required string Description { get; set; }
 
         /// <summary>
         /// Precio del producto.
         /// </summary>
-        public decimal Price { get; set; }
+        public required int Price { get; set; }
 
         /// <summary>
-        /// Precio original antes de descuentos.
+        /// Descuento del producto.
         /// </summary>
-        public decimal OriginalPrice { get; set; }
+        public int Discount { get; set; }
 
         /// <summary>
-        /// Descuento aplicable al producto.
+        /// Stock del producto.
         /// </summary>
-        public decimal Discount { get; set; } = 0;
+        public required int Stock { get; set; }
 
         /// <summary>
-        /// Cantidad de productos disponibles en inventario.
+        /// Estado del producto (Nuevo o usado).
         /// </summary>
-        public int Stock { get; set; }
+        public required Status Status { get; set; }
 
         /// <summary>
-        /// URL de la imagen del producto.
+        /// Indica si el producto está disponible para la venta.
         /// </summary>
-    //    public string ImageUrl { get; set; }
+        public bool IsAvailable { get; set; } = true;
 
         /// <summary>
-        /// Categoría a la que pertenece el producto.
+        /// Identificador de la categoría del producto.
         /// </summary>
-    //    public string Category { get; set; }
+        public int CategoryId { get; set; }
 
         /// <summary>
-        /// Estado del producto (Ejemplo: Nuevo, Usado).
+        /// Categoría del producto.
         /// </summary>
-    //    public string Condition { get; set; }
+        public Category Category { get; set; } = null!;
+
+        /// <summary>
+        /// Identificador de la marca del producto.
+        /// </summary>
+        public int BrandId { get; set; }
+
+        /// <summary>
+        /// Marca del producto.
+        /// </summary>
+        public Brand Brand { get; set; } = null!;
+
+        /// <summary>
+        /// Lista de imágenes asociadas al producto.
+        /// </summary>
+        public ICollection<Image> Images { get; set; } = new List<Image>();
 
         /// <summary>
         /// Fecha de creación del producto.
@@ -61,8 +79,8 @@ namespace Tienda.src.Domain.Models
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
         /// <summary>
-        /// Indicador de si el producto está disponible para la venta.
+        /// Fecha de actualización del producto.
         /// </summary>
-        public bool IsAvailable { get; set; } = true;
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }

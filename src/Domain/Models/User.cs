@@ -1,56 +1,62 @@
 using Microsoft.AspNetCore.Identity;
-using System;
+using Tienda.Src.Domain.Models;
 
 namespace Tienda.src.Domain.Models
 {
-    /// <summary>
-    /// Modelo que representa un usuario del sistema.
-    /// </summary>
+    public enum Gender
+    {
+        Masculino,
+        Femenino,
+        Otro
+    }
     public class User : IdentityUser<int>
     {
+
+        /// <summary>
+        /// Identificador único del usuario chileno.
+        /// </summary>
+        public required string Rut { get; set; }
+
         /// <summary>
         /// Nombre del usuario.
         /// </summary>
-//        public string FirstName { get; set; }
+        public required string FirstName { get; set; }
 
         /// <summary>
         /// Apellido del usuario.
         /// </summary>
-//        public string LastName { get; set; }
+        public required string LastName { get; set; }
 
         /// <summary>
-        /// Género del usuario (Masculino, Femenino, Otro).
+        /// Género del usuario.
         /// </summary>
-//        public string Gender { get; set; }
+        public required Gender Gender { get; set; }
 
         /// <summary>
         /// Fecha de nacimiento del usuario.
         /// </summary>
-        public DateTime BirthDate { get; set; }
+        public required DateTime BirthDate { get; set; }
+
 
         /// <summary>
-        /// Número de RUT del usuario (formato chileno).
+        /// Indica si el usuario ha aceptado los términos y condiciones.
         /// </summary>
-//        public string Rut { get; set; }
+        public ICollection<VerificationCode> VerificationCodes { get; set; } = new List<VerificationCode>();
 
         /// <summary>
-        /// Número de teléfono del usuario.
+        /// Órdenes realizadas por el usuario.
         /// </summary>
-//        public string PhoneNumber { get; set; }
-        
-        /// <summary>
-        /// Rol del usuario.
-        /// </summary>
-//        public string Role { get; set; }
-        
-        /// <summary>
-        /// Fecha de creación del usuario.
-        /// </summary>
-        public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+        public ICollection<Order> Orders { get; set; } = new List<Order>();
 
         /// <summary>
-        /// Indica si el usuario está activo.
+        /// Fecha de registro del usuario.
         /// </summary>
-        public bool IsActive { get; set; } = true;
+        public DateTime RegisteredAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Fecha de actualización del usuario.
+        /// </summary>
+        public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
     }
 }
+
