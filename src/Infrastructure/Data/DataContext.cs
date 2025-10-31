@@ -1,17 +1,9 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Tienda.src.Domain.Models;
-using Tienda.Src.Domain.Models;
 
 namespace Tienda.src.Infrastructure.Data
 {
-    /// <summary>
-    /// Contexto de datos para la aplicación, hereda de IdentityDbContext para manejar la identidad de usuarios.
-    /// </summary>
     public class DataContext : IdentityDbContext<User, Role, int>
     {
         public DataContext(DbContextOptions<DataContext> options) : base(options) { }
@@ -25,5 +17,39 @@ namespace Tienda.src.Infrastructure.Data
         public DbSet<Cart> Carts { get; set; } = null!;
         public DbSet<CartItem> CartItems { get; set; } = null!;
         public DbSet<VerificationCode> VerificationCodes { get; set; } = null!;
+
+        protected override void OnModelCreating(ModelBuilder modelBuilder)
+        {
+            base.OnModelCreating(modelBuilder);
+
+            // Claves compuestas para OrderItem y CartItem
+            modelBuilder.Entity<OrderItem>().HasKey(oi => new { oi.OrderId, oi.Id });
+            modelBuilder.Entity<CartItem>().HasKey(ci => new { ci.CartId, ci.ProductId });
+
+            // Relaciones entre entidades
+            modelBuilder.Entity<Product>()
+                .HasMany<OrderItem>()
+                .WithOne(oi => oi.Product)
+                .HasForeignKey(oi => oi.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Order>()
+                .HasMany(o => o.OrderItems)
+                .WithOne(oi => oi.Order)
+                .HasForeignKey(oi => oi.OrderId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Cart>()
+                .HasMany(c => c.CartItems)
+                .WithOne(ci => ci.Cart)
+                .HasForeignKey(ci => ci.CartId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            modelBuilder.Entity<Product>()
+                .HasMany<CartItem>()
+                .WithOne(ci => ci.Product)
+                .HasForeignKey(ci => ci.ProductId)
+                .OnDelete(DeleteBehavior.Cascade);
+        }
     }
 }

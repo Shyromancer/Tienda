@@ -1,4 +1,4 @@
-namespace Tienda.Src.Domain.Models
+namespace Tienda.src.Domain.Models
 {
     public enum CodeType
     {

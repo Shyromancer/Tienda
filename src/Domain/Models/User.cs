@@ -1,5 +1,5 @@
 using Microsoft.AspNetCore.Identity;
-using Tienda.Src.Domain.Models;
+using Tienda.src.Domain.Models;
 
 namespace Tienda.src.Domain.Models
 {

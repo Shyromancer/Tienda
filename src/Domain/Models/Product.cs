@@ -82,5 +82,10 @@ namespace Tienda.src.Domain.Models
         /// Fecha de actualización del producto.
         /// </summary>
         public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
+
+        /// <summary>
+        /// Lista de items de orden asociados al producto.
+        /// </summary>
+        public ICollection<OrderItem> OrderItems { get; set; } = new List<OrderItem>();
     }
 }

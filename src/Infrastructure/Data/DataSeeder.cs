@@ -5,6 +5,8 @@ using System.Threading.Tasks;
 using Bogus;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Tienda.src.Domain.Models;
 
@@ -12,35 +14,29 @@ namespace Tienda.src.Infrastructure.Data
 {
     public class DataSeeder
     {
-        /// <summary>
-        /// Método para inicializar la base de datos con datos de prueba.
-        /// </summary>
-        /// <param name="serviceProvider">Proveedor de servicios para obtener el contexto de datos y otros servicios.</param>
-        /// <returns>Tarea asíncrona que representa la operación de inicialización.</returns>
         public static async Task Initialize(IServiceProvider serviceProvider)
         {
             try
             {
-
                 using var scope = serviceProvider.CreateScope();
                 var context = scope.ServiceProvider.GetRequiredService<DataContext>();
                 var configuration = scope.ServiceProvider.GetRequiredService<IConfiguration>();
                 var userManager = scope.ServiceProvider.GetRequiredService<UserManager<User>>();
-                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<Role>>();
+                var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole<int>>>();
                 await context.Database.EnsureCreatedAsync();
                 await context.Database.MigrateAsync();
 
                 // Creación de roles
                 if (!context.Roles.Any())
                 {
-                    var roles = new List<Role>
-                        {
-                            new Role { Name = "Admin", NormalizedName = "ADMIN" },
-                            new Role { Name = "Customer", NormalizedName = "CUSTOMER" }
-                        };
+                    var roles = new List<IdentityRole<int>>
+                    {
+                        new IdentityRole<int> { Name = "Admin", NormalizedName = "ADMIN" },
+                        new IdentityRole<int> { Name = "Customer", NormalizedName = "CUSTOMER" }
+                    };
                     foreach (var role in roles)
                     {
-                        var result = roleManager.CreateAsync(role).GetAwaiter().GetResult();
+                        var result = await roleManager.CreateAsync(role);
                         if (!result.Succeeded)
                         {
                             Log.Error("Error creando rol {RoleName}: {Errors}", role.Name, string.Join(", ", result.Errors.Select(e => e.Description)));
@@ -54,13 +50,13 @@ namespace Tienda.src.Infrastructure.Data
                 if (!context.Categories.Any())
                 {
                     var categories = new List<Category>
-                            {
-                                new Category { Name = "Electronics" },
-                                new Category { Name = "Clothing" },
-                                new Category { Name = "Home Appliances" },
-                                new Category { Name = "Books" },
-                                new Category { Name = "Sports" }
-                            };
+                    {
+                        new Category { Name = "Electronics" },
+                        new Category { Name = "Clothing" },
+                        new Category { Name = "Home Appliances" },
+                        new Category { Name = "Books" },
+                        new Category { Name = "Sports" }
+                    };
                     await context.Categories.AddRangeAsync(categories);
                     await context.SaveChangesAsync();
                     Log.Information("Categorías creadas con éxito.");
@@ -70,11 +66,11 @@ namespace Tienda.src.Infrastructure.Data
                 if (!await context.Brands.AnyAsync())
                 {
                     var brands = new List<Brand>
-                        {
-                            new Brand { Name = "Sony" },
-                            new Brand { Name = "Apple" },
-                            new Brand { Name = "HP" }
-                        };
+                    {
+                        new Brand { Name = "Sony" },
+                        new Brand { Name = "Apple" },
+                        new Brand { Name = "HP" }
+                    };
                     await context.Brands.AddRangeAsync(brands);
                     await context.SaveChangesAsync();
                     Log.Information("Marcas creadas con éxito.");
@@ -83,41 +79,53 @@ namespace Tienda.src.Infrastructure.Data
                 // Creación de usuarios
                 if (!await context.Users.AnyAsync())
                 {
-                    Role customerRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Customer") ?? throw new InvalidOperationException("El rol de cliente no está configurado.");
-                    Role adminRole = await context.Roles.FirstOrDefaultAsync(r => r.Name == "Admin") ?? throw new InvalidOperationException("El rol de administrador no está configurado.");
+                    // Use role names directly to avoid nullable role lookup issues
+                    // Roles are created above, so we can reference them by name when assigning to users.
+                    const string customerRoleName = "Customer";
+                    const string adminRoleName = "Admin";
 
                     // Creación de usuario administrador
                     User adminUser = new User
                     {
-                        FirstName = configuration["User:AdminUser:FirstName"] ?? throw new InvalidOperationException("El nombre del usuario administrador no está configurado."),
-                        LastName = configuration["User:AdminUser:LastName"] ?? throw new InvalidOperationException("El apellido del usuario administrador no está configurado."),
-                        Email = configuration["User:AdminUser:Email"] ?? throw new InvalidOperationException("El email del usuario administrador no está configurado."),
+                        FirstName = configuration["User:AdminUser:FirstName"] ?? string.Empty,
+                        LastName = configuration["User:AdminUser:LastName"] ?? string.Empty,
+                        Email = configuration["User:AdminUser:Email"] ?? string.Empty,
                         EmailConfirmed = true,
                         Gender = Gender.Masculino,
-                        Rut = configuration["User:AdminUser:Rut"] ?? throw new InvalidOperationException("El RUT del usuario administrador no está configurado."),
-                        BirthDate = DateTime.Parse(configuration["User:AdminUser:BirthDate"] ?? throw new InvalidOperationException("La fecha de nacimiento del usuario administrador no está configurada.")),
-                        PhoneNumber = configuration["User:AdminUser:PhoneNumber"] ?? throw new InvalidOperationException("El número de teléfono del usuario administrador no está configurado.")
+                        Rut = configuration["User:AdminUser:Rut"] ?? string.Empty,
+                        BirthDate = DateTime.TryParse(configuration["User:AdminUser:BirthDate"], out var parsedBirthDate) ? parsedBirthDate : DateTime.UtcNow.AddYears(-30),
+                        PhoneNumber = configuration["User:AdminUser:PhoneNumber"] ?? string.Empty
                     };
                     adminUser.UserName = adminUser.Email;
-                    var adminPassword = configuration["User:AdminUser:Password"] ?? throw new InvalidOperationException("La contraseña del usuario administrador no está configurada.");
+                    var adminPassword = configuration["User:AdminUser:Password"];
+                    if (string.IsNullOrWhiteSpace(adminPassword))
+                    {
+                        adminPassword = GenerateRandomPassword();
+                        Log.Warning("Admin password not provided in configuration; a temporary password was generated.");
+                    }
                     var adminResult = await userManager.CreateAsync(adminUser, adminPassword);
                     if (adminResult.Succeeded)
                     {
-                        var roleResult = await userManager.AddToRoleAsync(adminUser, adminRole.Name!);
-                        if (!roleResult.Succeeded)
+                        var addRoleResult = await userManager.AddToRoleAsync(adminUser, adminRoleName);
+                        if (!addRoleResult.Succeeded)
                         {
-                            Log.Error("Error asignando rol de administrador: {Errors}", string.Join(", ", roleResult.Errors.Select(e => e.Description)));
+                            Log.Error("Error asignando rol de administrador: {Errors}", string.Join(", ", addRoleResult.Errors.Select(e => e.Description)));
                             throw new InvalidOperationException("No se pudo asignar el rol de administrador al usuario.");
                         }
                         Log.Information("Usuario administrador creado con éxito.");
                     }
                     else
                     {
-                        Log.Error("Error creando usuario administrador: {Errors}", string.Join(", ", adminResult.Errors.Select(e => e.Description)));
-                        throw new InvalidOperationException("No se pudo crear el usuario administrador.");
+                        Log.Error("No se pudo crear el usuario administrador: {Errors}", string.Join(", ", adminResult.Errors.Select(e => e.Description)));
+                        // continue to seed other users even if admin creation fails
                     }
-                    // Creación de usuarios aleatorios
-                    var randomPassword = configuration["User:RandomUserPassword"] ?? throw new InvalidOperationException("La contraseña de los usuarios aleatorios no está configurada.");
+
+                    var randomPassword = configuration["User:RandomUserPassword"];
+                    if (string.IsNullOrWhiteSpace(randomPassword))
+                    {
+                        randomPassword = GenerateRandomPassword();
+                        Log.Warning("Random user password not provided in configuration; generated a temporary password for seeded users.");
+                    }
 
                     var userFaker = new Faker<User>()
                         .RuleFor(u => u.FirstName, f => f.Name.FirstName())
@@ -129,18 +137,17 @@ namespace Tienda.src.Infrastructure.Data
                         .RuleFor(u => u.BirthDate, f => f.Date.Past(30, DateTime.Now.AddYears(-18)))
                         .RuleFor(u => u.PhoneNumber, f => RandomPhoneNumber())
                         .RuleFor(u => u.UserName, (f, u) => u.Email);
+
                     var users = userFaker.Generate(99);
                     foreach (var user in users)
                     {
                         var result = await userManager.CreateAsync(user, randomPassword);
-
                         if (result.Succeeded)
                         {
-                            var roleResult = await userManager.AddToRoleAsync(user, customerRole.Name!);
-                            if (!roleResult.Succeeded)
+                            var addRoleResult = await userManager.AddToRoleAsync(user, customerRoleName);
+                            if (!addRoleResult.Succeeded)
                             {
-                                Log.Error("Error asignando rol a {Email}: {Errors}", user.Email, string.Join(", ", roleResult.Errors.Select(e => e.Description)));
-                                throw new InvalidOperationException($"No se pudo asignar el rol de cliente al usuario {user.Email}.");
+                                Log.Error("Error asignando rol a {Email}: {Errors}", user.Email, string.Join(", ", addRoleResult.Errors.Select(e => e.Description)));
                             }
                         }
                         else
@@ -173,21 +180,6 @@ namespace Tienda.src.Infrastructure.Data
                         await context.SaveChangesAsync();
                         Log.Information("Productos creados con éxito.");
                     }
-
-                    // Creación de imágenes
-                    if (!await context.Images.AnyAsync())
-                    {
-                        var productIds = await context.Products.Select(p => p.Id).ToListAsync();
-                        var imageFaker = new Faker<Image>()
-                            .RuleFor(i => i.ImageUrl, f => f.Image.PicsumUrl())
-                            .RuleFor(i => i.PublicId, f => f.Random.Guid().ToString())
-                            .RuleFor(i => i.ProductId, f => f.PickRandom(productIds));
-
-                        var images = imageFaker.Generate(20);
-                        await context.Images.AddRangeAsync(images);
-                        await context.SaveChangesAsync();
-                        Log.Information("Imágenes creadas con éxito.");
-                    }
                 }
             }
             catch (Exception ex)
@@ -196,22 +188,6 @@ namespace Tienda.src.Infrastructure.Data
             }
         }
 
-        /// <summary>
-        /// Método para generar un RUT chileno aleatorio.
-        /// </summary>
-        /// <returns>Un RUT en formato "XXXXXXXX-X".</returns>
-        private static string RandomRut()
-        {
-            var faker = new Faker();
-            var rut = faker.Random.Int(1000000, 99999999).ToString();
-            var dv = faker.Random.Int(0, 9).ToString();
-            return $"{rut}-{dv}";
-        }
-
-        /// <summary>
-        /// Método para generar un número de teléfono chileno aleatorio.
-        /// </summary>
-        /// <returns>Un número de teléfono en formato "+569 XXXXXXXX".</returns>
         private static string RandomPhoneNumber()
         {
             var faker = new Faker();
@@ -219,7 +195,66 @@ namespace Tienda.src.Infrastructure.Data
             string secondPartNumber = faker.Random.Int(1000, 9999).ToString();
             return $"+569 {firstPartNumber}{secondPartNumber}";
         }
+
+        private static string GenerateRandomPassword()
+        {
+            // Create a reasonably strong password: length + mixed character classes
+            const string upper = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+            const string lower = "abcdefghijkmnopqrstuvwxyz";
+            const string digits = "23456789";
+            const string specials = "!@$?_-";
+            var rng = new Random();
+            string Pick(string s) => s[rng.Next(s.Length)].ToString();
+
+            // Ensure at least one of each required type
+            var passwordChars = new List<char>
+            {
+                Pick(upper)[0],
+                Pick(lower)[0],
+                Pick(digits)[0],
+                Pick(specials)[0]
+            };
+
+            // Fill to desired length
+            int desiredLength = 12;
+            string all = upper + lower + digits + specials;
+            for (int i = passwordChars.Count; i < desiredLength; i++)
+            {
+                passwordChars.Add(all[rng.Next(all.Length)]);
+            }
+
+            // Shuffle
+            for (int i = passwordChars.Count - 1; i > 0; i--)
+            {
+                int j = rng.Next(i + 1);
+                var tmp = passwordChars[i];
+                passwordChars[i] = passwordChars[j];
+                passwordChars[j] = tmp;
+            }
+
+            return new string(passwordChars.ToArray());
+        }
+
+        private static string RandomRut()
+        {
+            var faker = new Faker();
+            int rutNumber = faker.Random.Int(1000000, 25000000);
+            int rutCopy = rutNumber;
+            int sum = 0;
+            int multiplier = 2;
+            while (rutCopy > 0)
+            {
+                sum += (rutCopy % 10) * multiplier;
+                multiplier++;
+                if (multiplier > 7) multiplier = 2;
+                rutCopy /= 10;
+            }
+            int remainder = 11 - (sum % 11);
+            string dv;
+            if (remainder == 11) dv = "0";
+            else if (remainder == 10) dv = "K";
+            else dv = remainder.ToString();
+            return $"{rutNumber}-{dv}";
+        }
     }
 }
-
-
