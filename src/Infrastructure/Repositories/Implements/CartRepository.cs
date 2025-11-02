@@ -14,10 +14,13 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
             _context = context;
         }
 
-        public async Task<Cart> GetCartAsync(int userId) =>
-            await _context.Carts.Include(c => c.CartItems)
-                                .ThenInclude(ci => ci.Product)
-                                .FirstOrDefaultAsync(c => c.UserId == userId);
+        public async Task<Cart?> GetCartAsync(int userId)
+        {
+            var cart = await _context.Carts.Include(c => c.CartItems)
+                                           .ThenInclude(ci => ci.Product)
+                                           .FirstOrDefaultAsync(c => c.UserId == userId);
+            return cart;
+        }
 
         public async Task AddToCartAsync(int userId, int productId, int quantity)
         {

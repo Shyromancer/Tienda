@@ -14,8 +14,14 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
             _context = context;
         }
 
-        public async Task<User> GetUserAsync(int userId) =>
-            await _context.Users.FindAsync(userId);
+        public async Task<User> GetUserAsync(int userId)
+        {
+            if (userId <= 0) // Verifica si el ID es válido
+            {
+                throw new ArgumentException("El ID de usuario no es válido.");
+            }
+            return await _context.Users.FindAsync(userId);
+        }
 
         public async Task<IEnumerable<User>> GetAllUsersAsync() =>
             await _context.Users.ToListAsync();
@@ -25,11 +31,22 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
             _context.Users.Add(user);
             await _context.SaveChangesAsync();
         }
+        
 
         public async Task UpdateUserAsync(User user)
         {
             _context.Users.Update(user);
             await _context.SaveChangesAsync();
+        }
+
+        public Task CreateUserAsync(User user, string password)
+        {
+            throw new NotImplementedException();
+        }
+
+        public Task DeleteUserAsync(int userId)
+        {
+            throw new NotImplementedException();
         }
     }
 }

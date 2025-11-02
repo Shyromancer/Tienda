@@ -14,15 +14,19 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
             _context = context;
         }
 
-        public async Task<IEnumerable<Product>> GetAllProductsAsync() =>
-            await _context.Products.ToListAsync();
-
-        public async Task<Product?> GetProductByIdAsync(int id) =>
-            await _context.Products.FindAsync(id);
-
-        public async Task AddProductAsync(Product product)
+        public async Task<Product> GetProductByIdAsync(int id)
         {
-            _context.Products.Add(product);
+            return await _context.Products.FindAsync(id);
+        }
+
+        public async Task<IEnumerable<Product>> GetAllProductsAsync()
+        {
+            return await _context.Products.ToListAsync();
+        }
+
+        public async Task CreateProductAsync(Product product)
+        {
+            await _context.Products.AddAsync(product);
             await _context.SaveChangesAsync();
         }
 
@@ -43,3 +47,4 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
         }
     }
 }
+

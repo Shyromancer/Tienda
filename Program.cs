@@ -10,19 +10,26 @@ using Tienda.src.Domain.Models;
 using Tienda.src.Infrastructure.Data;
 using Tienda.src.Infrastructure.Repositories.Implements;
 using Tienda.src.Infrastructure.Repositories.Interfaces;
-
+using Tienda.src.Application.Services.Implements; 
+using Tienda.src.Application.Services.Interfaces;
 
 var builder = WebApplication.CreateBuilder(args);
 
 
-var connectionString = builder.Configuration.GetConnectionString("SqliteDatabase") ?? throw new InvalidOperationException("Connection string SqliteDatabase no configurado");
 
+var connectionString = builder.Configuration.GetConnectionString("SqliteDatabase") ?? throw new InvalidOperationException("Connection string SqliteDatabase no configurado");
+// Registrar los servicios
+builder.Services.AddScoped<IProductService, ProductService>();  // Registrar IProductService
 
 // Configuración de servicios para los controladores y el CRUD
 builder.Services.AddScoped<IProductRepository, ProductRepository>();
 builder.Services.AddScoped<ICartRepository, CartRepository>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<ICartService, CartService>();
+builder.Services.AddScoped<IOrderService, OrderService>();
+builder.Services.AddScoped<IUserService, UserService>();
+builder.Services.AddScoped<IProductService, ProductService>();
 
 builder.Services.AddDbContext<DataContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("SqliteDatabase")));
@@ -96,4 +103,3 @@ app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.Run();
-

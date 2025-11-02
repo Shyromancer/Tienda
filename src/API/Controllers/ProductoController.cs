@@ -15,46 +15,24 @@ namespace Tienda.src.API.Controllers
             _productService = productService;
         }
 
-        // GET: api/products
+        // Ejemplo de acción en el controlador
+        [HttpGet("{id}")]
+        public async Task<IActionResult> GetProductById(int id)
+        {
+            var product = await _productService.GetProductByIdAsync(id);
+            if (product == null)
+            {
+                return NotFound();
+            }
+            return Ok(product);
+        }
+
         [HttpGet]
-        public async Task<IActionResult> GetAll()
+        public async Task<IActionResult> GetAllProducts()
         {
             var products = await _productService.GetAllProductsAsync();
             return Ok(products);
         }
-
-        // GET: api/products/5
-        [HttpGet("{id}")]
-        public async Task<IActionResult> GetById(int id)
-        {
-            var product = await _productService.GetProductByIdAsync(id);
-            if (product == null) return NotFound();
-            return Ok(product);
-        }
-
-        // POST: api/products
-        [HttpPost]
-        public async Task<IActionResult> Create(Product product)
-        {
-            await _productService.AddProductAsync(product);
-            return CreatedAtAction(nameof(GetById), new { id = product.Id }, product);
-        }
-
-        // PUT: api/products/5
-        [HttpPut("{id}")]
-        public async Task<IActionResult> Update(int id, Product product)
-        {
-            if (id != product.Id) return BadRequest();
-            await _productService.UpdateProductAsync(product);
-            return NoContent();
-        }
-
-        // DELETE: api/products/5
-        [HttpDelete("{id}")]
-        public async Task<IActionResult> Delete(int id)
-        {
-            await _productService.DeleteProductAsync(id);
-            return NoContent();
-        }
     }
 }
+

@@ -22,8 +22,9 @@ namespace Tienda.src.Infrastructure.Repositories.Implements
 
         public async Task<Order> GetOrderByIdAsync(int orderId) =>
             await _context.Orders.Include(o => o.OrderItems)
-                                 .ThenInclude(oi => oi.Product)
-                                 .FirstOrDefaultAsync(o => o.Id == orderId);
+                 .ThenInclude(oi => oi.Product)
+                 .FirstOrDefaultAsync(o => o.Id == orderId)
+            ?? throw new InvalidOperationException($"Order with ID {orderId} not found.");
 
         public async Task CreateOrderAsync(Order order)
         {

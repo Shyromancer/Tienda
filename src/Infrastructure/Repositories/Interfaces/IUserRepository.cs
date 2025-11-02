@@ -8,7 +8,8 @@ namespace Tienda.src.Infrastructure.Repositories.Interfaces
     {
         Task<User> GetUserAsync(int userId);
         Task<IEnumerable<User>> GetAllUsersAsync();
-        Task AddUserAsync(User user);
+        Task CreateUserAsync(User user, string password);
         Task UpdateUserAsync(User user);
+        Task DeleteUserAsync(int userId);
     }
 }
